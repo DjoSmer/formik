@@ -8,8 +8,9 @@ import {
   FieldValidator,
 } from './types';
 import { useFormikContext } from './FormikContext';
-import { isFunction, isEmptyChildren, isObject } from './utils';
+import { isFunction, isObject, getIn } from './utils';
 import invariant from 'tiny-warning';
+import { useFormikSelector } from './useFormikSelector';
 
 export interface FieldProps<V = any, FormValues = any> {
   field: FieldInputProps<V>;
@@ -24,23 +25,15 @@ export interface FieldConfig<V = any> {
   component?:
     | string
     | React.ComponentType<FieldProps<V>>
-    | React.ComponentType
     | React.ForwardRefExoticComponent<any>;
 
   /**
    * Component to render. Can either be a string e.g. 'select', 'input', or 'textarea', or a component.
    */
   as?:
-    | React.ComponentType<FieldProps<V>['field']>
     | string
-    | React.ComponentType
+    | React.ComponentType<FieldProps<V>['field']>
     | React.ForwardRefExoticComponent<any>;
-
-  /**
-   * Render prop (works like React router's <Route render={props =>} />)
-   * @deprecated
-   */
-  render?: (props: FieldProps<V>) => React.ReactNode;
 
   /**
    * Children render function <Field name>{props => ...}</Field>)
@@ -67,9 +60,8 @@ export interface FieldConfig<V = any> {
   innerRef?: (instance: any) => void;
 }
 
-export type FieldAttributes<T> = GenericFieldHTMLAttributes &
-  FieldConfig<T> &
-  T & { name: string };
+export type FieldAttributes<T> = FieldConfig<T> &
+  Omit<GenericFieldHTMLAttributes, 'children'> & { name: string };
 
 export type FieldHookConfig<T> = GenericFieldHTMLAttributes & FieldConfig<T>;
 
@@ -93,6 +85,12 @@ export function useField<Val = any>(
     : { name: propsOrFieldName as string };
 
   const { name: fieldName, validate: validateFn } = props;
+
+  useFormikSelector(({ values, errors, touched }) => ({
+    value: getIn(values, fieldName),
+    error: getIn(errors, fieldName),
+    touched: getIn(touched, fieldName),
+  }));
 
   React.useEffect(() => {
     if (fieldName) {
@@ -126,15 +124,16 @@ export function useField<Val = any>(
   ];
 }
 
-export function Field({
-  validate,
-  name,
-  render,
-  children,
-  as: is, // `as` is reserved in typescript lol
-  component,
-  ...props
-}: FieldAttributes<any>) {
+export const Field: React.FC<FieldAttributes<any>> = (inProps) => {
+  const {
+    validate,
+    name,
+    children,
+    as: is, // `as` is reserved in typescript lol
+    component,
+    ...props
+  } = inProps;
+
   const {
     validate: _validate,
     validationSchema: _validationSchema,
@@ -146,11 +145,6 @@ export function Field({
     // eslint-disable-next-line react-hooks/rules-of-hooks
     React.useEffect(() => {
       invariant(
-        !render,
-        `<Field render> has been deprecated and will be removed in future versions of Formik. Please use a child callback function instead. To get rid of this warning, replace <Field name="${name}" render={({field, form}) => ...} /> with <Field name="${name}">{({field, form, meta}) => ...}</Field>`
-      );
-
-      invariant(
         !(is && children && isFunction(children)),
         'You should not use <Field as> and <Field children> as a function in the same <Field> component; <Field as> will be ignored.'
       );
@@ -159,35 +153,16 @@ export function Field({
         !(component && children && isFunction(children)),
         'You should not use <Field component> and <Field children> as a function in the same <Field> component; <Field component> will be ignored.'
       );
-
-      invariant(
-        !(render && children && !isEmptyChildren(children)),
-        'You should not use <Field render> and <Field children> in the same <Field> component; <Field children> will be ignored'
-      );
       // eslint-disable-next-line
     }, []);
   }
 
-  // Register field and field-level validation with parent <Formik>
-  const { registerField, unregisterField } = formik;
-  React.useEffect(() => {
-    registerField(name, {
-      validate: validate,
-    });
-    return () => {
-      unregisterField(name);
-    };
-  }, [registerField, unregisterField, name, validate]);
-  const field = formik.getFieldProps({ name, ...props });
-  const meta = formik.getFieldMeta(name);
+  const [field, meta] = useField({ name, validate });
+
   const legacyBag = { field, form: formik };
 
-  if (render) {
-    return render({ ...legacyBag, meta });
-  }
-
   if (isFunction(children)) {
-    return children({ ...legacyBag, meta });
+    return children({ ...legacyBag, meta }) as React.ReactElement;
   }
 
   if (component) {
@@ -200,10 +175,11 @@ export function Field({
         children
       );
     }
-    // We don't pass `meta` for backwards compat
+
+    // We don't pass `meta` for backwards compat - DjoSmer: I don't understand, why do it need
     return React.createElement(
       component,
-      { field, form: formik, ...props },
+      { meta, ...props, ...legacyBag },
       children
     );
   }
@@ -221,4 +197,4 @@ export function Field({
   }
 
   return React.createElement(asElement, { ...field, ...props }, children);
-}
+};

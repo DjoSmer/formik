@@ -16,7 +16,6 @@ import {
   FormikProps,
   FormikConfig,
 } from '../src';
-
 import { noop } from './testHelpers';
 
 const initialValues = { name: 'jared', email: 'hello@reason.nyc' };
@@ -32,9 +31,7 @@ function renderForm(
   let injected: FormikProps<Values>;
   const { rerender, ...rest } = render(
     <Formik onSubmit={noop} initialValues={initialValues} {...props}>
-      {(formikProps: FormikProps<Values>) =>
-        (injected = formikProps) && ui ? ui : null
-      }
+      {(formikProps) => ((injected = formikProps) && ui ? ui : null)}
     </Formik>
   );
 
@@ -46,39 +43,37 @@ function renderForm(
     rerender: () =>
       rerender(
         <Formik onSubmit={noop} initialValues={initialValues} {...props}>
-          {(formikProps: FormikProps<Values>) =>
-            (injected = formikProps) && ui ? ui : null
-          }
+          {(formikProps) => ((injected = formikProps) && ui ? ui : null)}
         </Formik>
       ),
   };
 }
 
-const createRenderField = (
-  FieldComponent: React.ComponentType<FieldConfig>
-) => (
-  props: Partial<FieldConfig> | Partial<FastFieldConfig> = {},
-  formProps?: Partial<FormikConfig<Values>>
-) => {
-  let injected: FieldProps;
+const createRenderField =
+  (FieldComponent: React.ComponentType<FieldConfig>) =>
+  (
+    props: Partial<FieldConfig> | Partial<FastFieldConfig> = {},
+    formProps?: Partial<FormikConfig<Values>>
+  ) => {
+    let injected: FieldProps;
 
-  if (!props.children && !props.render && !props.component && !props.as) {
-    props.children = (fieldProps: FieldProps) =>
-      (injected = fieldProps) && (
-        <input {...fieldProps.field} name="name" data-testid="name-input" />
-      );
-  }
+    if (!props.children && !props.component && !props.as) {
+      props.children = (fieldProps: FieldProps) =>
+        (injected = fieldProps) && (
+          <input {...fieldProps.field} name="name" data-testid="name-input" />
+        );
+    }
 
-  return {
-    getProps() {
-      return injected;
-    },
-    ...renderForm(
-      <FieldComponent name="name" data-testid="name-input" {...props} />,
-      formProps
-    ),
+    return {
+      getProps() {
+        return injected;
+      },
+      ...renderForm(
+        <FieldComponent name="name" data-testid="name-input" {...props} />,
+        formProps
+      ),
+    };
   };
-};
 
 const renderField = createRenderField(Field);
 const renderFastField = createRenderField(FastField);
@@ -115,8 +110,10 @@ describe('Field / FastField', () => {
       let injected: FieldProps[] = [];
       let asInjectedProps: FieldProps['field'] = {} as any;
 
-      const Component = (props: FieldProps) =>
-        injected.push(props) && <div data-testid="child">{TEXT}</div>;
+      const Component = (props: FieldProps) => {
+        injected.push(props);
+        return <div data-testid="child">{TEXT}</div>;
+      };
 
       const AsComponent = (props: FieldProps['field']) =>
         (asInjectedProps = props) && <div data-testid="child">{TEXT}</div>;
@@ -124,7 +121,6 @@ describe('Field / FastField', () => {
       const { getFormProps, queryAllByText } = renderForm(
         <>
           <Field name="name" children={Component} />
-          <Field name="name" render={Component} />
           <Field name="name" component={Component} />
           <Field name="name" as={AsComponent} />
         </>
@@ -154,24 +150,24 @@ describe('Field / FastField', () => {
       expect(asInjectedProps.onChange).toBe(handleChange);
       expect(asInjectedProps.onBlur).toBe(handleBlur);
 
-      expect(queryAllByText(TEXT)).toHaveLength(4);
+      expect(queryAllByText(TEXT)).toHaveLength(3);
     });
 
     it('<FastField />', () => {
       let injected: FieldProps[] = [];
       let asInjectedProps: FieldProps['field'] = {} as any;
 
-      const Component = (props: FieldProps) =>
-        injected.push(props) && <div>{TEXT}</div>;
+      const Component = (props: FieldProps) => {
+        injected.push(props);
+        return <div>{TEXT}</div>;
+      };
       const AsComponent = (props: FieldProps['field']) =>
         (asInjectedProps = props) && <div data-testid="child">{TEXT}</div>;
 
       const { getFormProps, queryAllByText } = renderForm(
         <>
           <FastField name="name" children={Component} />
-          <FastField name="name" render={Component} />
-          {/* @todo fix the types here?? #shipit */}
-          <FastField name="name" component={Component as $FixMe} />
+          <FastField name="name" component={Component} />
           <FastField name="name" as={AsComponent} />
         </>
       );
@@ -199,7 +195,7 @@ describe('Field / FastField', () => {
       expect(asInjectedProps.value).toBe('jared');
       expect(asInjectedProps.onChange).toBe(handleChange);
       expect(asInjectedProps.onBlur).toBe(handleBlur);
-      expect(queryAllByText(TEXT)).toHaveLength(4);
+      expect(queryAllByText(TEXT)).toHaveLength(3);
     });
   });
 
@@ -228,7 +224,7 @@ describe('Field / FastField', () => {
   });
 
   describe('component', () => {
-    cases('renders string components', renderField => {
+    cases('renders string components', (renderField) => {
       const { container } = renderField({
         component: 'textarea',
       });
@@ -236,7 +232,7 @@ describe('Field / FastField', () => {
       expect((container.firstChild as $FixMe).type).toBe('textarea');
     });
 
-    cases('assigns innerRef as a ref to string components', renderField => {
+    cases('assigns innerRef as a ref to string components', (renderField) => {
       const innerRef = jest.fn();
       const { container } = renderField({
         innerRef,
@@ -246,7 +242,7 @@ describe('Field / FastField', () => {
       expect(innerRef).toHaveBeenCalledWith(container.firstChild);
     });
 
-    cases('forwards innerRef to React component', renderField => {
+    cases('forwards innerRef to React component', (renderField) => {
       let injected: any; /** FieldProps ;) */
       const Component = (props: FieldProps) => (injected = props) && null;
 
@@ -257,7 +253,7 @@ describe('Field / FastField', () => {
   });
 
   describe('as', () => {
-    cases('renders string components', renderField => {
+    cases('renders string components', (renderField) => {
       const { container } = renderField({
         as: 'textarea',
       });
@@ -265,7 +261,7 @@ describe('Field / FastField', () => {
       expect((container.firstChild as $FixMe).type).toBe('textarea');
     });
 
-    cases('assigns innerRef as a ref to string components', renderField => {
+    cases('assigns innerRef as a ref to string components', (renderField) => {
       const innerRef = jest.fn();
       const { container } = renderField({
         innerRef,
@@ -275,7 +271,7 @@ describe('Field / FastField', () => {
       expect(innerRef).toHaveBeenCalledWith(container.firstChild);
     });
 
-    cases('forwards innerRef to React component', renderField => {
+    cases('forwards innerRef to React component', (renderField) => {
       let injected: any; /** FieldProps ;) */
       const Component = (props: FieldProps['field']) =>
         (injected = props) && null;
@@ -287,15 +283,17 @@ describe('Field / FastField', () => {
   });
 
   describe('validate', () => {
-    cases('calls validate during onChange if present', async renderField => {
+    cases('calls validate during onChange if present', async (renderField) => {
       const validate = jest.fn();
       const { getByTestId, rerender } = renderField({
         validate,
         component: 'input',
       });
       rerender();
-      fireEvent.change(getByTestId('name-input'), {
-        target: { name: 'name', value: 'hello' },
+      await act(() => {
+        fireEvent.change(getByTestId('name-input'), {
+          target: { name: 'name', value: 'hello' },
+        });
       });
 
       rerender();
@@ -306,7 +304,7 @@ describe('Field / FastField', () => {
 
     cases(
       'does NOT call validate during onChange if validateOnChange is set to false',
-      async renderField => {
+      async (renderField) => {
         const validate = jest.fn();
         const { getByTestId, rerender } = renderField(
           { validate, component: 'input' },
@@ -323,15 +321,17 @@ describe('Field / FastField', () => {
       }
     );
 
-    cases('calls validate during onBlur if present', async renderField => {
+    cases('calls validate during onBlur if present', async (renderField) => {
       const validate = jest.fn();
       const { getByTestId, rerender } = renderField({
         validate,
         component: 'input',
       });
       rerender();
-      fireEvent.blur(getByTestId('name-input'), {
-        target: { name: 'name' },
+      await act(() => {
+        fireEvent.blur(getByTestId('name-input'), {
+          target: { name: 'name' },
+        });
       });
       rerender();
       await waitFor(() => {
@@ -341,7 +341,7 @@ describe('Field / FastField', () => {
 
     cases(
       'does NOT call validate during onBlur if validateOnBlur is set to false',
-      async renderField => {
+      async (renderField) => {
         const validate = jest.fn();
         const { getByTestId, rerender } = renderField(
           { validate, component: 'input' },
@@ -360,7 +360,7 @@ describe('Field / FastField', () => {
 
     cases(
       'runs validation when validateField is called (SYNC)',
-      async renderField => {
+      async (renderField) => {
         const validate = jest.fn(() => 'Error!');
         const { getFormProps, rerender } = renderField({
           validate,
@@ -375,14 +375,14 @@ describe('Field / FastField', () => {
         rerender();
         await waitFor(() => {
           expect(validate).toHaveBeenCalled();
-          expect(getFormProps().errors.name).toBe('Error!');
+          expect(getFormProps().state.errors.name).toBe('Error!');
         });
       }
     );
 
     cases(
       'runs validation when validateField is called (ASYNC)',
-      async renderField => {
+      async (renderField) => {
         const validate = jest.fn(() => Promise.resolve('Error!'));
 
         const { getFormProps, rerender } = renderField({ validate });
@@ -395,13 +395,15 @@ describe('Field / FastField', () => {
         });
 
         expect(validate).toHaveBeenCalled();
-        await waitFor(() => expect(getFormProps().errors.name).toBe('Error!'));
+        await waitFor(() =>
+          expect(getFormProps().state.errors.name).toBe('Error!')
+        );
       }
     );
 
     cases(
       'runs validationSchema validation when validateField is called',
-      async renderField => {
+      async (renderField) => {
         const errorMessage = 'Name must be 100 characters in length';
 
         const validationSchema = Yup.object({
@@ -419,7 +421,7 @@ describe('Field / FastField', () => {
         });
 
         await waitFor(() =>
-          expect(getFormProps().errors).toEqual({
+          expect(getFormProps().state.errors).toEqual({
             name: errorMessage,
           })
         );
@@ -428,20 +430,9 @@ describe('Field / FastField', () => {
   });
 
   describe('warnings', () => {
-    cases('warns about render prop deprecation', renderField => {
-      global.console.warn = jest.fn();
-      const { rerender } = renderField({
-        render: () => null,
-      });
-      rerender();
-      expect((global.console.warn as jest.Mock).mock.calls[0][0]).toContain(
-        'deprecated'
-      );
-    });
-
     cases(
       'warns if both string component and children as a function',
-      renderField => {
+      (renderField) => {
         global.console.warn = jest.fn();
 
         const { rerender } = renderField({
@@ -457,7 +448,7 @@ describe('Field / FastField', () => {
 
     cases(
       'warns if both string as prop and children as a function',
-      renderField => {
+      (renderField) => {
         global.console.warn = jest.fn();
 
         const { rerender } = renderField({
@@ -473,7 +464,7 @@ describe('Field / FastField', () => {
 
     cases(
       'warns if both non-string component and children children as a function',
-      renderField => {
+      (renderField) => {
         global.console.warn = jest.fn();
 
         const { rerender } = renderField({
@@ -486,48 +477,9 @@ describe('Field / FastField', () => {
         );
       }
     );
-
-    cases('warns if both string component and render', renderField => {
-      global.console.warn = jest.fn();
-
-      const { rerender } = renderField({
-        component: 'textarea',
-        render: () => <option value="Jared">{TEXT}</option>,
-      });
-      rerender();
-      expect((global.console.warn as jest.Mock).mock.calls[0][0]).toContain(
-        'Warning:'
-      );
-    });
-
-    cases('warns if both non-string component and render', renderField => {
-      global.console.warn = jest.fn();
-
-      const { rerender } = renderField({
-        component: () => null,
-        render: () => <option value="Jared">{TEXT}</option>,
-      });
-      rerender();
-      expect((global.console.warn as jest.Mock).mock.calls[0][0]).toContain(
-        'Warning:'
-      );
-    });
-
-    cases('warns if both children and render', renderField => {
-      global.console.warn = jest.fn();
-
-      const { rerender } = renderField({
-        children: <div>{TEXT}</div>,
-        render: () => <div>{TEXT}</div>,
-      });
-      rerender();
-      expect((global.console.warn as jest.Mock).mock.calls[0][0]).toContain(
-        'Warning:'
-      );
-    });
   });
 
-  cases('can resolve bracket paths', renderField => {
+  cases('can resolve bracket paths', (renderField) => {
     const { getProps } = renderField(
       { name: 'user[superPowers][0]' },
       {
@@ -538,7 +490,7 @@ describe('Field / FastField', () => {
     expect(getProps().field.value).toBe('Surging');
   });
 
-  cases('can resolve mixed dot and bracket paths', renderField => {
+  cases('can resolve mixed dot and bracket paths', (renderField) => {
     const { getProps } = renderField(
       { name: 'user.superPowers[1]' },
       {
@@ -549,7 +501,7 @@ describe('Field / FastField', () => {
     expect(getProps().field.value).toBe('Binding');
   });
 
-  cases('can resolve mixed dot and bracket paths II', renderField => {
+  cases('can resolve mixed dot and bracket paths II', (renderField) => {
     const { getProps } = renderField(
       // tslint:disable-next-line:quotemark
       { name: "user['superPowers'].1" },

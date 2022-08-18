@@ -12,14 +12,6 @@ import {
 import { isFunction } from './utils';
 
 /**
- * State, handlers, and helpers injected as props into the wrapped form component.
- * Used with withFormik()
- *
- * @deprecated  Use `OuterProps & FormikProps<Values>` instead.
- */
-export type InjectedFormikProps<Props, Values> = Props & FormikProps<Values>;
-
-/**
  * Formik helpers + { props }
  */
 export type FormikBag<P, V> = { props: P } & FormikHelpers<V>;
@@ -31,7 +23,7 @@ export interface WithFormikConfig<
   Props,
   Values extends FormikValues = FormikValues,
   DeprecatedPayload = Values
-> extends FormikSharedConfig<Props> {
+> extends FormikSharedConfig {
   /**
    * Set the display name of the component. Useful for React DevTools.
    */
@@ -79,9 +71,7 @@ export interface WithFormikConfig<
   validate?: (values: Values, props: Props) => void | object | Promise<any>;
 }
 
-export type CompositeComponent<P> =
-  | React.ComponentClass<P>
-  | React.StatelessComponent<P>;
+export type CompositeComponent<P> = React.ComponentType<P>;
 
 export interface ComponentDecorator<TOwnProps, TMergedProps> {
   (component: CompositeComponent<TMergedProps>): React.ComponentType<TOwnProps>;
@@ -119,7 +109,7 @@ export function withFormik<
 > {
   return function createFormik(
     Component: CompositeComponent<OuterProps & FormikProps<Values>>
-  ): React.ComponentClass<OuterProps> {
+  ) {
     const componentDisplayName =
       Component.displayName ||
       Component.name ||
@@ -150,7 +140,7 @@ export function withFormik<
       };
 
       /**
-       * Just avoiding a render callback for perf here
+       *  Just avoiding a render callback for perf here
        */
       renderFormComponent = (formikProps: FormikProps<Values>) => {
         return <Component {...this.props} {...formikProps} />;
@@ -182,6 +172,7 @@ export function withFormik<
     }
 
     return hoistNonReactStatics(
+      // @ts-ignore
       C,
       Component as React.ComponentClass<OuterProps & FormikProps<Values>> // cast type to ComponentClass (even if SFC)
     ) as React.ComponentClass<OuterProps>;

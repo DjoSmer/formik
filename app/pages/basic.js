@@ -1,5 +1,5 @@
 import React from 'react';
-import { Formik, Field, Form, ErrorMessage } from 'formik';
+import { Formik, Field, Form, ErrorMessage } from 'formik2nd';
 import * as Yup from 'yup';
 
 let renderCount = 0;
@@ -24,8 +24,8 @@ const Basic = () => (
           .max(20, 'Nice try, nobody has a last name that long')
           .required('Required'),
       })}
-      onSubmit={async values => {
-        await new Promise(r => setTimeout(r, 500));
+      onSubmit={async (values) => {
+        await new Promise((r) => setTimeout(r, 500));
         alert(JSON.stringify(values, null, 2));
       }}
     >

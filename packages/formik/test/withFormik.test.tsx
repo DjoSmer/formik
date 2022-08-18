@@ -10,15 +10,11 @@ interface Values {
 }
 
 const Form: React.FC<FormikProps<Values>> = ({
-  values,
   handleSubmit,
   handleChange,
   handleBlur,
-  touched,
   setStatus,
-  status,
-  errors,
-  isSubmitting,
+  state: { touched, values, status, errors, isSubmitting },
 }) => {
   return (
     <form onSubmit={handleSubmit}>
@@ -55,7 +51,7 @@ const renderWithFormik = (options?: any, props?: any) => {
     mapPropsToValues: () => InitialValues,
     handleSubmit: noop,
     ...options,
-  })(props => (injected = props) && <Form {...props} />);
+  })((props) => (injected = props) && <Form {...props} />);
 
   return {
     getProps() {
@@ -71,24 +67,32 @@ describe('withFormik()', () => {
 
     const props = getProps();
 
-    expect(props).toEqual({
+    const checkProps = {
       initialValues: {
         name: 'jared',
       },
       initialErrors: {},
       initialTouched: {},
-      values: {
-        name: InitialValues.name,
+      state: {
+        values: {
+          name: InitialValues.name,
+        },
+        errors: {},
+        touched: {},
+        status: undefined,
+        isSubmitting: false,
+        isValidating: false,
+        submitCount: 0,
       },
-      dirty: false,
-      errors: {},
+      /*validateOnChange: true,
+      validateOnBlur: true,
+      validateOnMount: false,*/
+      isDirty: expect.any(Function),
+      isValid: expect.any(Function),
       handleBlur: expect.any(Function),
       handleChange: expect.any(Function),
       handleReset: expect.any(Function),
       handleSubmit: expect.any(Function),
-      isSubmitting: false,
-      isValid: true,
-      isValidating: false,
       getFieldProps: expect.any(Function),
       getFieldMeta: expect.any(Function),
       getFieldHelpers: expect.any(Function),
@@ -103,15 +107,15 @@ describe('withFormik()', () => {
       setSubmitting: expect.any(Function),
       setTouched: expect.any(Function),
       setValues: expect.any(Function),
-      submitCount: 0,
       submitForm: expect.any(Function),
-      touched: {},
       unregisterField: expect.any(Function),
       validateField: expect.any(Function),
       validateForm: expect.any(Function),
-      validateOnBlur: true,
-      validateOnMount: false,
-      validateOnChange: true,
+    };
+
+    Object.keys(checkProps).forEach((key) => {
+      //@ts-ignore
+      expect(props[key]).toEqual(checkProps[key]);
     });
   });
 
@@ -125,7 +129,7 @@ describe('withFormik()', () => {
     const myProps = { my: 'prop' };
     const { getProps } = renderWithFormik({ validate }, myProps);
 
-    act(() => {
+    await act(() => {
       getProps().submitForm();
     });
     await waitFor(() =>
@@ -139,7 +143,7 @@ describe('withFormik()', () => {
       validationSchema: { validate },
     });
 
-    act(() => {
+    await act(() => {
       getProps().submitForm();
     });
     await waitFor(() => expect(validate).toHaveBeenCalled());
@@ -155,7 +159,7 @@ describe('withFormik()', () => {
       myProps
     );
 
-    act(() => {
+    await act(() => {
       getProps().submitForm();
     });
     await waitFor(() => expect(validationSchema).toHaveBeenCalledWith(myProps));
@@ -171,7 +175,7 @@ describe('withFormik()', () => {
       myProps
     );
 
-    act(() => {
+    await act(() => {
       getProps().submitForm();
     });
 

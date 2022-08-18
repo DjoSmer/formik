@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { EventManager } from '@djosmer/event-manager';
+
 /**
  * Values of fields in the form
  */
@@ -58,9 +60,9 @@ export interface FormikState<Values> {
  */
 export interface FormikComputedProps<Values> {
   /** True if any input has been touched. False otherwise. */
-  readonly dirty: boolean;
+  isDirty: () => boolean;
   /** True if state.errors is empty */
-  readonly isValid: boolean;
+  isValid: () => boolean;
   /** The initial values of the form */
   readonly initialValues: Values;
   /** The initial errors of the form */
@@ -110,10 +112,10 @@ export interface FormikHelpers<Values> {
   /** Submit the form imperatively */
   submitForm: () => Promise<void>;
   /** Set Formik state, careful! */
-  setFormikState: (
+  setFormikState: <K extends keyof Values>(
     f:
       | FormikState<Values>
-      | ((prevState: FormikState<Values>) => FormikState<Values>),
+      | ((prevState: FormikState<Values>) => Partial<FormikState<Values>>),
     cb?: () => void
   ) => void;
 }
@@ -153,15 +155,13 @@ export interface FormikHandlers {
 /**
  * Base formik configuration/props shared between the HoC and Component.
  */
-export interface FormikSharedConfig<Props = {}> {
+export interface FormikSharedConfig {
   /** Tells Formik to validate the form on each input's onChange event */
   validateOnChange?: boolean;
   /** Tells Formik to validate the form on each input's onBlur event */
   validateOnBlur?: boolean;
   /** Tells Formik to validate upon mount */
   validateOnMount?: boolean;
-  /** Tell Formik if initial form values are valid or not on first render */
-  isInitialValid?: boolean | ((props: Props) => boolean);
   /** Should Formik reset the form when new initialValues change */
   enableReinitialize?: boolean;
 }
@@ -174,12 +174,6 @@ export interface FormikConfig<Values> extends FormikSharedConfig {
    * Form component to render
    */
   component?: React.ComponentType<FormikProps<Values>> | React.ReactNode;
-
-  /**
-   * Render prop (works like React router's <Route render={props =>} />)
-   * @deprecated
-   */
-  render?: (props: FormikProps<Values>) => React.ReactNode;
 
   /**
    * React children or child render callback
@@ -228,7 +222,7 @@ export interface FormikConfig<Values> extends FormikSharedConfig {
   validate?: (values: Values) => void | object | Promise<FormikErrors<Values>>;
 
   /** Inner ref */
-  innerRef?: React.Ref<FormikProps<Values>>;
+  //innerRef?: React.Ref<FormikProps<Values>>;
 }
 
 /**
@@ -236,11 +230,13 @@ export interface FormikConfig<Values> extends FormikSharedConfig {
  * of <Formik/>.
  */
 export type FormikProps<Values> = FormikSharedConfig &
-  FormikState<Values> &
   FormikHelpers<Values> &
   FormikHandlers &
   FormikComputedProps<Values> &
-  FormikRegistration & { submitForm: () => Promise<any> };
+  FormikRegistration & {
+    submitForm: () => Promise<any>;
+    state: FormikState<Values>;
+  };
 
 /** Internal Formik registration methods that get passed down as props */
 export interface FormikRegistration {
@@ -252,18 +248,17 @@ export interface FormikRegistration {
  * State, handlers, and helpers made available to Formik's primitive components through context.
  */
 export type FormikContextType<Values> = FormikProps<Values> &
-  Pick<FormikConfig<Values>, 'validate' | 'validationSchema'>;
+  Pick<FormikConfig<Values>, 'validate' | 'validationSchema'> & {
+    eventManager: EventManager<FormikEventListener<Values>>;
+    subscribe: (listener: FormikEventListener<Values>) => () => void;
+    getState: () => FormikState<Values>;
+  };
 
 export interface SharedRenderProps<T> {
   /**
    * Field component to render. Can either be a string like 'select' or a component.
    */
   component?: string | React.ComponentType<T | void>;
-
-  /**
-   * Render prop (works like React router's <Route render={props =>} />)
-   */
-  render?: (props: T) => React.ReactNode;
 
   /**
    * Children render function <Field name>{props => ...}</Field>)
@@ -321,3 +316,12 @@ export interface FieldInputProps<Value> {
 export type FieldValidator = (
   value: any
 ) => string | void | Promise<string | void>;
+
+export type FormikEventListener<Values> = (
+  state: FormikState<Values>,
+  formik: FormikContextType<Values>
+) => void;
+
+export const FormikEvents = {
+  stateUpdate: 'stateUpdate',
+};

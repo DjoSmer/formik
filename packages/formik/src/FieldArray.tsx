@@ -1,6 +1,5 @@
 import * as React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { connect } from './connect';
 import {
   FormikContextType,
   FormikState,
@@ -13,8 +12,9 @@ import {
   isFunction,
   setIn,
   isEmptyArray,
+  Deferred,
 } from './utils';
-import isEqual from 'react-fast-compare';
+import { FormikContext } from './FormikContext';
 
 export type FieldArrayRenderProps = ArrayHelpers & {
   form: FormikProps<any>;
@@ -49,7 +49,7 @@ export interface ArrayHelpers {
   /** Curried fn to replace an element at a given index into the array */
   handleReplace: (index: number, value: any) => () => void;
   /** Imperatively add an element to the beginning of an array and return its length */
-  unshift: (value: any) => number;
+  unshift: (value: any) => Promise<number>;
   /** Curried fn to add an element to the beginning of an array */
   handleUnshift: (value: any) => () => void;
   /** Curried fn to remove an element at an index of an array */
@@ -57,10 +57,11 @@ export interface ArrayHelpers {
   /** Curried fn to remove a value from the end of the array */
   handlePop: () => () => void;
   /** Imperatively remove and element at an index of an array */
-  remove<T>(index: number): T | undefined;
+  remove<T>(index: number): Promise<T> | undefined;
   /** Imperatively remove and return value from the end of the array */
-  pop<T>(): T | undefined;
+  pop<T>(): Promise<T> | undefined;
 }
+type FieldArrayState = { count: number };
 
 /**
  * Some array helpers!
@@ -112,41 +113,61 @@ const copyArrayLike = (arrayLike: ArrayLike<any>) => {
     return [...arrayLike];
   } else {
     const maxIndex = Object.keys(arrayLike)
-      .map(key => parseInt(key))
+      .map((key) => parseInt(key))
       .reduce((max, el) => (el > max ? el : max), 0);
     return Array.from({ ...arrayLike, length: maxIndex + 1 });
   }
 };
 
 class FieldArrayInner<Values = {}> extends React.Component<
-  FieldArrayConfig & { formik: FormikContextType<Values> },
-  {}
+  FieldArrayConfig,
+  FieldArrayState
 > {
   static defaultProps = {
     validateOnChange: true,
   };
+  static contextType = FormikContext;
+  context!: FormikContextType<Values>;
 
-  constructor(props: FieldArrayConfig & { formik: FormikContextType<Values> }) {
+  unsubscribe = () => {};
+
+  constructor(props: FieldArrayConfig) {
     super(props);
     // We need TypeScript generics on these, so we'll bind them in the constructor
     // @todo Fix TS 3.2.1
     this.remove = this.remove.bind(this) as any;
     this.pop = this.pop.bind(this) as any;
+
+    this.state = {
+      count: 0,
+    };
   }
 
-  componentDidUpdate(
-    prevProps: FieldArrayConfig & { formik: FormikContextType<Values> }
-  ) {
-    if (
-      this.props.validateOnChange &&
-      this.props.formik.validateOnChange &&
-      !isEqual(
-        getIn(prevProps.formik.values, prevProps.name),
-        getIn(this.props.formik.values, this.props.name)
-      )
-    ) {
-      this.props.formik.validateForm(this.props.formik.values);
-    }
+  componentDidMount() {
+    const { name, validateOnChange } = this.props;
+    const {
+      state: { values },
+      subscribe,
+    } = this.context;
+    let prevValue = getIn(values, name);
+    this.unsubscribe = subscribe((state, formik) => {
+      const value = getIn(state.values, name);
+      if (validateOnChange && formik.validateOnChange && prevValue !== value) {
+        formik.validateForm(state.values);
+      }
+      if (this.state.count !== value.length) {
+        this.setState({ count: value.length });
+      }
+      prevValue = value;
+    });
+
+    this.setState({
+      count: Array.isArray(prevValue) ? prevValue.length : 0,
+    });
+  }
+
+  componentWillUnmount() {
+    this.unsubscribe();
   }
 
   updateArrayField = (
@@ -154,11 +175,9 @@ class FieldArrayInner<Values = {}> extends React.Component<
     alterTouched: boolean | Function,
     alterErrors: boolean | Function
   ) => {
-    const {
-      name,
-
-      formik: { setFormikState },
-    } = this.props;
+    const { name } = this.props;
+    const { setFormikState } = this.context;
+    const deferred = new Deferred();
     setFormikState((prevState: FormikState<any>) => {
       let updateErrors = typeof alterErrors === 'function' ? alterErrors : fn;
       let updateTouched =
@@ -187,8 +206,7 @@ class FieldArrayInner<Values = {}> extends React.Component<
       }
 
       return {
-        ...prevState,
-        values,
+        values: { ...values },
         errors: alterErrors
           ? setIn(prevState.errors, name, fieldError)
           : prevState.errors,
@@ -196,7 +214,9 @@ class FieldArrayInner<Values = {}> extends React.Component<
           ? setIn(prevState.touched, name, fieldTouched)
           : prevState.touched,
       };
-    });
+    }, deferred.resolve as () => void);
+
+    return deferred.promise;
   };
 
   push = (value: any) =>
@@ -245,9 +265,10 @@ class FieldArrayInner<Values = {}> extends React.Component<
   handleReplace = (index: number, value: any) => () =>
     this.replace(index, value);
 
-  unshift = (value: any) => {
+  unshift = async (value: any) => {
     let length = -1;
-    this.updateArrayField(
+
+    await this.updateArrayField(
       (array: any[]) => {
         const arr = array ? [value, ...array] : [value];
         if (length < 0) {
@@ -270,15 +291,16 @@ class FieldArrayInner<Values = {}> extends React.Component<
         return arr;
       }
     );
+
     return length;
   };
 
   handleUnshift = (value: any) => () => this.unshift(value);
 
-  remove<T>(index: number): T {
+  async remove<T>(index: number): Promise<T> {
     // We need to make sure we also remove relevant pieces of `touched` and `errors`
     let result: any;
-    this.updateArrayField(
+    await this.updateArrayField(
       // so this gets call 3 times
       (array?: any[]) => {
         const copy = array ? copyArrayLike(array) : [];
@@ -299,10 +321,10 @@ class FieldArrayInner<Values = {}> extends React.Component<
 
   handleRemove = (index: number) => () => this.remove<any>(index);
 
-  pop<T>(): T {
+  async pop<T>(): Promise<T> {
     // Remove relevant pieces of `touched` and `errors` too!
     let result: any;
-    this.updateArrayField(
+    await this.updateArrayField(
       // so this gets call 3 times
       (array: any[]) => {
         const tmp = array;
@@ -340,17 +362,12 @@ class FieldArrayInner<Values = {}> extends React.Component<
       handleRemove: this.handleRemove,
     };
 
+    const { component, children, name } = this.props;
     const {
-      component,
-      render,
-      children,
-      name,
-      formik: {
-        validate: _validate,
-        validationSchema: _validationSchema,
-        ...restOfFormik
-      },
-    } = this.props;
+      validate: _validate,
+      validationSchema: _validationSchema,
+      ...restOfFormik
+    } = this.context;
 
     const props: FieldArrayRenderProps = {
       ...arrayHelpers,
@@ -360,11 +377,9 @@ class FieldArrayInner<Values = {}> extends React.Component<
 
     return component
       ? React.createElement(component as any, props)
-      : render
-      ? (render as any)(props)
       : children // children come last, always called
-      ? typeof children === 'function'
-        ? (children as any)(props)
+      ? isFunction(children)
+        ? children(props)
         : !isEmptyChildren(children)
         ? React.Children.only(children)
         : null
@@ -372,4 +387,4 @@ class FieldArrayInner<Values = {}> extends React.Component<
   }
 }
 
-export const FieldArray = connect<FieldArrayConfig, any>(FieldArrayInner);
+export const FieldArray = FieldArrayInner;

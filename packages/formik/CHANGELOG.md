@@ -1,5 +1,21 @@
 # formik
 
+## 3.0.0
+### Patch Changes
+
+- After changing a field, other fields aren't re-render.
+- Support React 16, 17, 18
+- new hook [useFormikSelector](../../docs/api/useFormikSelector.md)
+- FormikState move to FormikProps.state
+- FormikProps.dirty => FormikProps.isDirty()
+- FormikProps.isValid => FormikProps.isValid()
+- FastFiled === Field
+- FieldArray, methods pop, remove, unshift return Promise
+- hook useFormik don't work
+- isInitialValid has been deprecated and remove
+- `<* render/>` has been deprecated and remove
+- `<Formik innerRef/>` don't work
+
 ## 2.2.9
 
 ### Patch Changes

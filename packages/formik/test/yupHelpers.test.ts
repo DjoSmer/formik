@@ -1,3 +1,4 @@
+import { ValidationError } from 'yup';
 import { validateYupSchema, yupToFormErrors } from '../src';
 
 const Yup = require('yup');
@@ -32,8 +33,12 @@ describe('Yup helpers', () => {
       try {
         await validateYupSchema({}, schema);
       } catch (e) {
-        expect(e.name).toEqual('ValidationError');
-        expect(e.errors).toEqual(['required']);
+        expect(e instanceof ValidationError).toBeTruthy();
+
+        if (e instanceof ValidationError) {
+          expect(e.name).toEqual('ValidationError');
+          expect(e.errors).toEqual(['required']);
+        }
       }
     });
 

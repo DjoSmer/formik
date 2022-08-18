@@ -2,7 +2,7 @@
   "npmClient": "yarn",
   "useWorkspaces": true,
   "packages": [
-    "packages/*"
+    "packages/formik"
   ],
   "command": {
     "version": {
@@ -17,5 +17,5 @@
       "registry": "https://registry.npmjs.org/"
     }
   },
-  "version": "2.1.6"
+  "version": "3.0.0"
 }
