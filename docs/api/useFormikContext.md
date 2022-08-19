@@ -9,13 +9,14 @@ title: useFormikContext()
 
 Here's an example of a form that works similarly to Stripe's 2-factor verification form. As soon as you type a 6 digit number, the form will automatically submit (i.e. no enter keypress is needed).
 
-```js
+```jsx
 import React from 'react';
-import { useFormikContext, Formik, Form, Field } from 'formik';
+import { useFormikContext, Formik, Form, Field } from 'formik2nd';
 
 const AutoSubmitToken = () => {
   // Grab values and submitForm from context
-  const { values, submitForm } = useFormikContext();
+  const { submitForm } = useFormikContext();
+  const values = useFormikSelector(({values}) => values)
   React.useEffect(() => {
     // Submit the form imperatively as an effect as soon as form values.token are 6 digits long
     if (values.token.length === 6) {

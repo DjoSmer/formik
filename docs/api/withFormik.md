@@ -10,7 +10,7 @@ Create a higher-order React component class that passes props and form handlers
 
 ```jsx
 import React from 'react';
-import { withFormik } from 'formik';
+import { withFormik } from 'formik2nd';
 
 const MyForm = props => {
   const {

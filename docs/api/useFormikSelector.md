@@ -6,25 +6,25 @@ title: useFormikSelector()
 Allows you to extract data from the Formik state, using a selector function.
 
 ## Type signature
-```tsx
-type FormikSelector<Values, RT = unknown> = (formikState: FormikState<Values>) => RT;
 
-useFormikSelector<Values, RT = unknown>(selector: FormikSelector<Values, RT>): RT;
+```ts
+declare function useFormikSelector<Values extends FormikValues = FormikValues, RT = unknown>(
+  selector: (formikState: FormikState<Values>) => RT
+): RT
 ```
 
 ## Example
 
 ```tsx
 import React from 'react';
-import { Field, Form, Formik, useFormikSelector } from 'formik2nd';
+import { Field, Form, Formik, FormikState, useFormikSelector } from 'formik2nd';
 
-const MyInput = ({ field, form, ...props }) => {
-  return <input {...field} {...props} />;
-};
+const initialValues = { email: '', color: 'red', firstName: '', lastName: '' }
+type InitialValues = typeof initialValues;
 
 export const WatchColorField = () => {
   const color = useFormikSelector(
-    ({ values }) => values.color
+    ({ values }: FormikState<InitialValues>) => values.color
   );
   return (<span>{color}</span>);
 };
@@ -33,7 +33,7 @@ const Example = () => (
   <div>
     <h1>My Form</h1>
     <Formik
-      initialValues={{ email: '', color: 'red', firstName: '', lastName: '' }}
+      initialValues={initialValues}
       onSubmit={(values, actions) => {
         setTimeout(() => {
           alert(JSON.stringify(values, null, 2));
@@ -43,18 +43,58 @@ const Example = () => (
     >
       {(props) => (
         <Form>
-          <WatchColorField/>
+          <WatchColorField />
           <Field type="email" name="email" placeholder="Email" />
-          <Field as="select" name="color">
-            <option value="red">Red</option>
-            <option value="green">Green</option>
-            <option value="blue">Blue</option>
-          </Field>
-
-          <Field name="lastName" placeholder="Doe" component={MyInput} />
+           <Field name="lastName" placeholder="Doe" />
           <button type="submit">Submit</button>
         </Form>
       )}
+    </Formik>
+  </div>
+);
+```
+
+## Define Typed Hooks
+While it's possible to import the FormikState<Values> types into each component, it's better to create typed versions of the useFormikSelector hooks for usage in your application.
+This is important for useFormikSelector, it saves you the need to type (state: FormikState<Values>) every time
+
+## Example
+
+```tsx
+import React from 'react';
+import { Field, Form, Formik, TypedUseFormikSelector, useFormikSelector } from 'formik2nd';
+
+const initialValues = { email: '', color: 'red', firstName: '', lastName: '' }
+type InitialValues = typeof initialValues;
+
+// Use throughout your app instead of plain `useFormikSelector`
+export const useMyFormikSelector: TypedUseFormikSelector<InitialValues> = useFormikSelector
+
+export const WatchColorField = () => {
+  const color = useMyFormikSelector(
+    ({ values }) => values.color
+  );
+  return (<span>{color}</span>);
+};
+
+const Example = () => (
+  <div>
+    <h1>My Form</h1>
+    <Formik
+      initialValues={initialValues}
+      onSubmit={(values, actions) => {
+        setTimeout(() => {
+          alert(JSON.stringify(values, null, 2));
+          actions.setSubmitting(false);
+        }, 1000);
+      }}
+    >
+      <Form>
+        <WatchColorField />
+        <Field type="email" name="email" placeholder="Email" />
+        <Field name="lastName" placeholder="Doe" />
+        <button type="submit">Submit</button>
+      </Form>
     </Formik>
   </div>
 );

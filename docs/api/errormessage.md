@@ -9,7 +9,7 @@ title: <ErrorMessage />
 
 ```diff
 import React from 'react';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
+import { Formik, Form, Field, ErrorMessage } from 'formik2nd';
 import * as Yup from "yup";
 
 const SignupSchema = Yup.object().shape({
@@ -42,12 +42,12 @@ export const ValidationSchemaExample = () => (
 -           {errors.name && touched.name ? (
 -            <div>{errors.name}</div>
 -          ) : null}
-+         <ErrorMessage name="name" />
++         <ErrorMessage name="name" component="div" />
           <Field name="email" type="email" />
 -           {errors.email && touched.email ? (
 -            <div>{errors.email}</div>
 -          ) : null}
-+         <ErrorMessage name="email" />
++         <ErrorMessage name="email" component="div" />
           <button type="submit">Submit</button>
         </Form>
       )}

@@ -13,6 +13,10 @@ import {
   FormikConfig,
   FormikProps,
   prepareDataForValidation,
+  ErrorMessage,
+  Field,
+  useFormikSelector,
+  useFormikContext,
 } from '../src';
 //@ts-ignore
 import { noop } from './testHelpers';
@@ -25,22 +29,14 @@ interface Values {
 }
 
 function Form({
-  state: { values, touched, status, errors, isSubmitting },
+  state: { status, isSubmitting },
   handleSubmit,
-  handleChange,
-  handleBlur,
 }: FormikProps<Values>) {
   return (
     <form onSubmit={handleSubmit} data-testid="form">
-      <input
-        type="text"
-        onChange={handleChange}
-        onBlur={handleBlur}
-        value={values.name}
-        name="name"
-        data-testid="name-input"
-      />
-      {touched.name && errors.name && <div id="feedback">{errors.name}</div>}
+      <Field name="name" data-testid="name-input" />
+      <Field name="age" data-testid="age-input" />
+      <ErrorMessage name="name" component="div" id="feedback" />
       {isSubmitting && <div id="submitting">Submitting</div>}
       {status && !!status.myStatusMessage && (
         <div id="statusMessage">{status.myStatusMessage}</div>
@@ -65,11 +61,10 @@ function renderFormik<V = Values>(props?: Partial<FormikConfig<V>>) {
       initialValues={InitialValues as any}
       {...props}
     >
-      {(formikProps) =>
-        (injected = formikProps) && (
-          <Form {...(formikProps as unknown as FormikProps<Values>)} />
-        )
-      }
+      {(formikProps) => {
+        injected = formikProps;
+        return <Form {...(formikProps as unknown as FormikProps<Values>)} />;
+      }}
     </Formik>
   );
   return {
@@ -697,7 +692,7 @@ describe('<Formik>', () => {
       });
 
       it('setValues should run validations when validateOnChange is true (default)', async () => {
-        const newValue: Values = { name: 'ian' };
+        const newValue: Values = { name: 'ian', age: 20 };
         const validate = jest.fn((_values) => ({}));
         const { getProps } = renderFormik({ validate });
 
@@ -717,7 +712,7 @@ describe('<Formik>', () => {
         });
 
         await act(() => {
-          getProps().setValues({ name: 'ian' });
+          getProps().setValues({ name: 'ian', age: 20 });
         });
         rerender();
         await waitFor(() => {
@@ -911,11 +906,13 @@ describe('<Formik>', () => {
       expect(getProps().isValid).toBeFalsy();
     });*/
 
-    it('should compute isValid if the form is dirty and there are errors', () => {
+    it('should compute isValid if the form is dirty and there are errors', async () => {
       const { getProps } = renderFormik();
 
-      act(() => {
+      await act(() => {
         getProps().setValues({ name: 'ian' });
+      });
+      await act(() => {
         getProps().setErrors({ name: 'Required!' });
       });
 
@@ -1506,4 +1503,97 @@ describe('<Formik>', () => {
 
     expect(innerRef.current).toEqual(getProps());
   });*/
+
+  it('change one field and will other fields run rerender', async () => {
+    const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => {
+      const renderCountRef = React.useRef(0);
+      return (
+        <>
+          <span>
+            {props.name}-{++renderCountRef.current}
+          </span>
+          <input {...props} />
+        </>
+      );
+    };
+
+    const ComponentContext = () => {
+      useFormikContext();
+      const renderCountRef = React.useRef(0);
+      return <span>ComponentContext-{++renderCountRef.current}</span>;
+    };
+
+    const { getByText, getByTestId } = render(
+      <Formik onSubmit={noop} initialValues={InitialValues}>
+        <form onSubmit={noop} data-testid="form">
+          <ComponentContext />
+          <Field name="name" data-testid="name-input" as={Input} />
+          <Field name="age" data-testid="age-input" as={Input} />
+          <button type="submit">Submit</button>
+        </form>
+      </Formik>
+    );
+
+    await act(() => {
+      fireEvent.change(getByTestId('name-input'), {
+        target: {
+          name: 'name',
+          value: 'ian',
+        },
+      });
+    });
+
+    expect(getByText('name-2')).toBeTruthy();
+    expect(getByText('age-1')).toBeTruthy();
+    expect(getByText('ComponentContext-1')).toBeTruthy();
+  });
+
+  it('useFormikSelector', async () => {
+    let formik: FormikProps<Values> = {} as any;
+    const Submitting = () => {
+      const isSubmitting = useFormikSelector(
+        ({ isSubmitting }) => isSubmitting
+      );
+      return <div>{isSubmitting ? 'SubmittingTrue' : 'SubmittingFalse'}</div>;
+    };
+    const ComponentContext = () => {
+      formik = useFormikContext();
+      const renderCountRef = React.useRef(0);
+      return <span>ComponentContext-{++renderCountRef.current}</span>;
+    };
+    const { getByText } = render(
+      <Formik onSubmit={noop} initialValues={InitialValues}>
+        <form onSubmit={noop} data-testid="form">
+          <ComponentContext />
+          <Submitting />
+          <button type="submit">Submit</button>
+        </form>
+      </Formik>
+    );
+
+    await act(() => {
+      formik.setSubmitting(true);
+    });
+
+    expect(getByText('SubmittingTrue')).toBeTruthy();
+    expect(getByText('ComponentContext-1')).toBeTruthy();
+
+    await act(() => {
+      formik.setSubmitting(false);
+    });
+
+    expect(getByText('SubmittingFalse')).toBeTruthy();
+    expect(getByText('ComponentContext-1')).toBeTruthy();
+  });
 });
+
+/*
+
+// test re-render use `useFormikContext`
+
+
+
+
+
+
+ */

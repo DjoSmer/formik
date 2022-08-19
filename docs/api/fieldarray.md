@@ -7,7 +7,7 @@ title: <FieldArray />
 
 ```jsx
 import React from 'react';
-import { Formik, Form, Field, FieldArray } from 'formik';
+import { Formik, Form, Field, FieldArray } from 'formik2nd';
 
 // Here is an example of a form with an editable list.
 // Next to each input are buttons for insert and remove.
@@ -22,11 +22,13 @@ export const FriendList = () => (
           alert(JSON.stringify(values, null, 2));
         }, 500)
       }
-      render={({ values }) => (
+    >
+      {({ values }) => (
         <Form>
           <FieldArray
             name="friends"
-            render={arrayHelpers => (
+          >
+            {arrayHelpers => (
               <div>
                 {values.friends && values.friends.length > 0 ? (
                   values.friends.map((friend, index) => (
@@ -57,10 +59,10 @@ export const FriendList = () => (
                 </div>
               </div>
             )}
-          />
+          </FieldArray>
         </Form>
       )}
-    />
+    </Formik>
   </div>
 );
 ```
@@ -149,17 +151,18 @@ const FriendArrayErrors = errors =>
 For the nested field errors, you should assume that no part of the object is defined unless you've checked for it. Thus, you may want to do yourself a favor and make a custom `<ErrorMessage />` component that looks like this:
 
 ```jsx
-import { Field, getIn } from 'formik';
+import { Field, getIn } from 'formik2nd';
 
 const ErrorMessage = ({ name }) => (
   <Field
     name={name}
-    render={({ form }) => {
+  >
+    {({ form }) => {
       const error = getIn(form.errors, name);
       const touch = getIn(form.touched, name);
       return touch && error ? error : null;
     }}
-  />
+  </Field>
 );
 
 // Usage
@@ -186,55 +189,28 @@ The following methods are made available via render props.
 There are three ways to render things with `<FieldArray />`
 
 - `<FieldArray name="..." component>`
-- `<FieldArray name="..." render>`
 - `<FieldArray name="..." children>`
-
-### `render: (arrayHelpers: ArrayHelpers) => React.ReactNode`
-
-```jsx
-import React from 'react';
-import { Formik, Form, Field, FieldArray } from 'formik'
-
-export const FriendList = () => (
-  <div>
-    <h1>Friend List</h1>
-    <Formik
-      initialValues={{ friends: ['jared', 'ian', 'brent'] }}
-      onSubmit={...}
-      render={formikProps => (
-        <FieldArray
-          name="friends"
-          render={({ move, swap, push, insert, unshift, pop }) => (
-            <Form>
-              {/*... use these however you want */}
-            </Form>
-          )}
-        />
-    />
-  </div>
-);
-```
 
 ### `component: React.ReactNode`
 
 ```jsx
 import React from 'react';
-import { Formik, Form, Field, FieldArray } from 'formik'
-
+import { Formik, Form, Field, FieldArray } from 'formik2nd'
 
 export const FriendList = () => (
   <div>
     <h1>Friend List</h1>
     <Formik
       initialValues={{ friends: ['jared', 'ian', 'brent'] }}
-      onSubmit={...}
-      render={formikProps => (
+      onSubmit={() => {}}
+    >
+      {formikProps => (
         <FieldArray
           name="friends"
           component={MyDynamicForm}
         />
       )}
-    />
+    </Formik>
   </div>
 );
 
@@ -255,7 +231,7 @@ export const MyDynamicForm = ({
 
 ```jsx
 import React from 'react';
-import { Formik, Form, Field, FieldArray } from 'formik'
+import { Formik, Form, Field, FieldArray } from 'formik2nd'
 
 
 export const FriendList = () => (
@@ -263,8 +239,9 @@ export const FriendList = () => (
     <h1>Friend List</h1>
     <Formik
       initialValues={{ friends: ['jared', 'ian', 'brent'] }}
-      onSubmit={...}
-      render={formikProps => (
+      onSubmit={() => {}}
+    >
+      {formikProps => (
         <FieldArray name="friends">
           {({ move, swap, push, insert, unshift, pop, form }) => {
             return (
@@ -275,7 +252,7 @@ export const FriendList = () => (
           }}
         </FieldArray>
       )}
-    />
+    </Formik>
   </div>
 );
 ```

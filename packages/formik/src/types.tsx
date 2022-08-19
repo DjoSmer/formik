@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { EventManager } from '@djosmer/event-manager';
+import { ListenerCollection } from '@djosmer/event-manager';
 
 /**
  * Values of fields in the form
@@ -112,7 +112,7 @@ export interface FormikHelpers<Values> {
   /** Submit the form imperatively */
   submitForm: () => Promise<void>;
   /** Set Formik state, careful! */
-  setFormikState: <K extends keyof Values>(
+  setFormikState: (
     f:
       | FormikState<Values>
       | ((prevState: FormikState<Values>) => Partial<FormikState<Values>>),
@@ -249,8 +249,8 @@ export interface FormikRegistration {
  */
 export type FormikContextType<Values> = FormikProps<Values> &
   Pick<FormikConfig<Values>, 'validate' | 'validationSchema'> & {
-    eventManager: EventManager<FormikEventListener<Values>>;
-    subscribe: (listener: FormikEventListener<Values>) => () => void;
+    listeners: ListenerCollection<FormikEventListener<Values>>;
+    subscribe: ListenerCollection<FormikEventListener<Values>>['subscribe'];
     getState: () => FormikState<Values>;
   };
 
@@ -321,7 +321,3 @@ export type FormikEventListener<Values> = (
   state: FormikState<Values>,
   formik: FormikContextType<Values>
 ) => void;
-
-export const FormikEvents = {
-  stateUpdate: 'stateUpdate',
-};

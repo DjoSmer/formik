@@ -1,15 +1,16 @@
 import isEqual from 'react-fast-compare';
 import { useFormikContext } from './FormikContext';
-import { FormikState } from './types';
-import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/with-selector';
+import { FormikState, FormikValues } from './types';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
 
-export type FormikSelector<Values, RT = unknown> = (
-  formikState: FormikState<Values>
-) => RT;
+export interface TypedUseFormikSelector<Values> {
+  <TSelected>(selector: (state: FormikState<Values>) => TSelected): TSelected;
+}
 
-export function useFormikSelector<Values, RT = unknown>(
-  selector: FormikSelector<Values, RT>
-): RT {
+export function useFormikSelector<
+  Values extends FormikValues = FormikValues,
+  RT = unknown
+>(selector: (formikState: FormikState<Values>) => RT): RT {
   const formik = useFormikContext<Values>();
 
   return useSyncExternalStoreWithSelector(
@@ -18,5 +19,5 @@ export function useFormikSelector<Values, RT = unknown>(
     undefined,
     selector,
     isEqual
-  );
+  ) as RT;
 }

@@ -29,7 +29,7 @@ There are a few different ways to render things with `<Field>`.
 
 ```tsx
 import React from 'react';
-import { Field, Form, Formik, FormikProps } from 'formik';
+import { Field, Form, Formik } from 'formik2nd';
 
 const MyInput = ({ field, form, ...props }) => {
   return <input {...field} {...props} />;
@@ -47,33 +47,31 @@ const Example = () => (
         }, 1000);
       }}
     >
-      {(props: FormikProps<any>) => (
-        <Form>
-          <Field type="email" name="email" placeholder="Email" />
-          <Field as="select" name="color">
-            <option value="red">Red</option>
-            <option value="green">Green</option>
-            <option value="blue">Blue</option>
-          </Field>
+      <Form>
+        <Field type="email" name="email" placeholder="Email" />
+        <Field as="select" name="color">
+          <option value="red">Red</option>
+          <option value="green">Green</option>
+          <option value="blue">Blue</option>
+        </Field>
 
-          <Field name="lastName">
-            {({
+        <Field name="lastName">
+          {({
               field, // { name, value, onChange, onBlur }
               form: { touched, errors }, // also values, setXXXX, handleXXXX, dirty, isValid, status, etc.
               meta,
             }) => (
-              <div>
-                <input type="text" placeholder="Email" {...field} />
-                {meta.touched && meta.error && (
-                  <div className="error">{meta.error}</div>
-                )}
-              </div>
-            )}
-          </Field>
-          <Field name="lastName" placeholder="Doe" component={MyInput} />
-          <button type="submit">Submit</button>
-        </Form>
-      )}
+                  <div>
+                    <input type="text" placeholder="Email" {...field} />
+                    {meta.touched && meta.error && (
+                            <div className="error">{meta.error}</div>
+                    )}
+                  </div>
+          )}
+        </Field>
+        <Field name="lastName" placeholder="Doe" component={MyInput} />
+        <button type="submit">Submit</button>
+      </Form>
     </Formik>
   </div>
 );
@@ -204,44 +202,6 @@ When you are **not** using a custom component and you need to access the underly
 
 A field's name in Formik state. To access nested objects or arrays, name can also accept lodash-like dot path like `social.facebook` or `friends[0].firstName`
 
-### `render`
-
-`render?: (props: FieldProps) => React.ReactNode`
-
-**Deprecated in 2.x. Use `children` instead.**
-
-A function that returns one or more JSX elements.
-
-```jsx
-// Renders an HTML <input> and passes FieldProps field property
-<Field
-  name="firstName"
-  render={({ field /* { name, value, onChange, onBlur } */ }) => (
-    <input {...field} type="text" placeholder="firstName" />
-  )}
-/>
-
-// Renders an HTML <input> and disables it while form is submitting
-<Field
-  name="lastName"
-  render={({ field, form: { isSubmitting } }) => (
-    <input {...field} disabled={isSubmitting} type="text" placeholder="lastName" />
-  )}
-/>
-
-// Renders an HTML <input> with custom error <div> element
-<Field
-  name="lastName"
-  render={({ field, form: { touched, errors } }) => (
-    <div>
-      <input {...field} type="text" placeholder="lastName" />
-      {touched[field.name] &&
-        errors[field.name] && <div className="error">{errors[field.name]}</div>}
-    </div>
-  )}
-/>
-```
-
 ### `validate`
 
 `validate?: (value: any) => undefined | string | Promise<any>`
@@ -260,7 +220,7 @@ You can run independent field-level validations by passing a function to the
 
 ```jsx
 import React from 'react';
-import { Formik, Form, Field } from 'formik';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
 
 // Synchronous validation function
 const validate = value => {
@@ -288,17 +248,15 @@ const MyForm = () => (
     initialValues={{ email: '', username: '' }}
     onSubmit={values => alert(JSON.stringify(values, null, 2))}
   >
-    {({ errors, touched }) => (
-      <Form>
-        <Field validate={validate} name="email" type="email" />
-        {errors.email && touched.email ? <div>{errors.email}</div> : null}
-        <Field validate={validateAsync} name="username" />
-        {errors.username && touched.username ? (
-          <div>{errors.username}</div>
-        ) : null}
-        <button type="submit">Submit</button>
-      </Form>
-    )}
+    <Form>
+      <Field validate={validate} name="email" type="email" />
+      <ErrorMessage name="email" component="div" />
+
+      <Field validate={validateAsync} name="username" />
+      <ErrorMessage name="username" component="div" />
+
+      <button type="submit">Submit</button>
+    </Form>
   </Formik>
 );
 ```

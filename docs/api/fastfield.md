@@ -3,6 +3,8 @@ id: fastfield
 title: <FastField />
 ---
 
+# since v3, FastField === Field
+
 ## Before we start
 
 `<FastField />` is meant for performance _optimization_. However, you really do not need to use it until you do. Only proceed if you are familiar with how React's [`shouldComponentUpdate()`](https://reactjs.org/docs/react-component.html#shouldcomponentupdate) works. You have been warned.

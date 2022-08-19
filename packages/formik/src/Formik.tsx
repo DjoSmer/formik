@@ -10,7 +10,6 @@ import {
   FormikConfig,
   FormikErrors,
   FormikEventListener,
-  FormikEvents,
   FormikHelpers,
   FormikRegistration,
   FormikState,
@@ -29,7 +28,7 @@ import {
 } from './utils';
 import { FormikProvider } from './FormikContext';
 import invariant from 'tiny-warning';
-import { createEventManager } from '@djosmer/event-manager';
+import { createListenerCollection } from '@djosmer/event-manager';
 
 // Initial empty states // objects
 const emptyErrors: FormikErrors<unknown> = {};
@@ -43,7 +42,7 @@ interface FieldRegistry {
   };
 }
 
-export function useFormik<Values extends FormikValues = FormikValues>() {}
+export function useFormik() {}
 
 export class Formik<
   Values extends FormikValues = FormikValues
@@ -55,7 +54,7 @@ export class Formik<
     enableReinitialize: false,
   };
 
-  eventManager = createEventManager<FormikEventListener<Values>>();
+  listeners = createListenerCollection<FormikEventListener<Values>>();
   initialValues: Values;
   initialErrors: FormikErrors<Values>;
   initialTouched = emptyTouched;
@@ -82,10 +81,7 @@ export class Formik<
     this.initialStatus = props.initialStatus;
   }
 
-  componentDidUpdate(
-    prevProps: Readonly<FormikConfig<Values>>,
-    prevState: Readonly<FormikState<Values>>
-  ) {
+  componentDidUpdate(_: any, prevState: Readonly<FormikState<Values>>) {
     const {
       validateOnMount,
       enableReinitialize,
@@ -96,7 +92,7 @@ export class Formik<
     } = this.props;
 
     if (prevState !== this.state) {
-      this.eventManager.emit(FormikEvents.stateUpdate, this.state, this);
+      this.listeners.notify(this.state, this);
     }
 
     if (
@@ -140,9 +136,7 @@ export class Formik<
     this._isMounted = false;
   }
 
-  subscribe = (listener: FormikEventListener<Values>) => {
-    return this.eventManager.on(FormikEvents.stateUpdate, listener);
-  };
+  subscribe = this.listeners.subscribe;
 
   runValidateHandler = (
     values: Values,
@@ -754,7 +748,7 @@ export class Formik<
     const { values } = this.state;
     const isAnObject = isObject(nameOrOptions);
     const name = isAnObject ? nameOrOptions.name : nameOrOptions;
-    const valueState = getIn(values, name);
+    const valueState = getIn(values, name) || '';
 
     const field: FieldInputProps<any> = {
       name,

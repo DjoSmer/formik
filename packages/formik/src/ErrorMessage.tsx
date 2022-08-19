@@ -2,9 +2,9 @@ import * as React from 'react';
 import { getIn, isFunction } from './utils';
 import { useFormikSelector } from './useFormikSelector';
 
-export interface ErrorMessageProps {
+export interface ErrorMessageProps
+  extends Omit<React.HTMLAttributes<any>, 'children'> {
   name: string;
-  className?: string;
   component?: string | React.ComponentType;
   children?: (errorMessage: string) => React.ReactNode;
 }
