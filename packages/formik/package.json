@@ -1,7 +1,7 @@
 {
   "name": "formik2nd",
   "description": "Build forms in React, without the tears and without unnecessary re-renders",
-  "version": "3.0.0",
+  "version": "3.0.2",
   "author": "DjoSmer <djos.ghub@mail.ru>",
   "contributors": [
     {
