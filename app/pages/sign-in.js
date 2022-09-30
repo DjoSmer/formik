@@ -52,6 +52,17 @@ const WatchField = () => {
   ]);
 };
 
+const SubmitButton = () => {
+  useFormikSelector(({ errors }) => errors);
+  const { isValid } = useFormikContext();
+
+  return (
+    <button type="submit" disabled={!isValid()}>
+      Submit
+    </button>
+  );
+};
+
 const SignIn = () => {
   const router = useRouter();
   const [errorLog, setErrorLog] = useState([]);
@@ -88,10 +99,7 @@ const SignIn = () => {
             <ErrorMessage name="password" component="p" />
           </div>
 
-          <button type="submit" disabled={!formik.isValid}>
-            Submit
-          </button>
-
+          <SubmitButton />
           <button
             type="reset"
             onClick={() => {

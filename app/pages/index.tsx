@@ -16,6 +16,11 @@ function Home() {
             <a>Async Submission</a>
           </Link>
         </li>
+        <li>
+          <Link href="/sign-in">
+            <a>Sign in</a>
+          </Link>
+        </li>
       </ul>
       <style jsx>{`
         main {

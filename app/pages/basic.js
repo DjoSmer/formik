@@ -17,7 +17,9 @@ const Basic = () => (
         picked: '',
       }}
       validationSchema={Yup.object().shape({
-        email: Yup.string().email('Invalid email address').required('Required'),
+        email: Yup.string()
+          .email('Invalid email address1')
+          .required('Required'),
         firstName: Yup.string().required('Required'),
         lastName: Yup.string()
           .min(2, 'Must be longer than 2 characters')

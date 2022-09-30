@@ -16,7 +16,7 @@ export function useFormikSelector<
   return useSyncExternalStoreWithSelector(
     formik.subscribe,
     formik.getState,
-    undefined,
+    formik.getState,
     selector,
     isEqual
   ) as RT;
