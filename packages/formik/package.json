@@ -1,7 +1,7 @@
 {
   "name": "formik2nd",
   "description": "Build forms in React, without the tears and without unnecessary re-renders",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "author": "DjoSmer <djos.ghub@mail.ru>",
   "contributors": [
     {
@@ -74,14 +74,14 @@
     "@types/react-dom": "^18.0.6",
     "@types/warning": "^3.0.0",
     "@types/yup": "^0.29.14",
-    "just-debounce-it": "^1.1.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "yup": "^0.32.11",
     "cypress": "^5.2.0",
+    "husky": "^4.3.0",
+    "just-debounce-it": "^1.1.0",
     "lerna": "^3.19.0",
     "lint-staged": "^10.4.0",
-    "husky": "^4.3.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "yup": "^0.32.11"
   },
   "jest": {
     "globals": {
